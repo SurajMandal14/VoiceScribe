@@ -977,3 +977,36 @@ input:checked + .toggle-slider:before {
   color: white;
   border-color: var(--primary);
 }
+
+/* Add these styles for the connection status indicator */
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  padding: 4px 8px;
+  border-radius: 12px;
+  background-color: rgba(0, 0, 0, 0.05);
+  margin-right: auto;
+}
+
+.dark-mode .connection-status {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--success);
+  transition: background-color 0.3s ease;
+}
+
+.status-dot.offline {
+  background-color: var(--danger);
+}
+
+.status-text {
+  color: var(--text);
+  transition: color 0.3s ease;
+}

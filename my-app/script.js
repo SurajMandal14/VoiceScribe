@@ -75,8 +75,115 @@ let pttTranscript = "";
 
 // Backend API URL - change this to your server address when deploying
 // Use a relative URL that works regardless of where the app is hosted
-const API_BASE_URL = "http://localhost:5000";
+const API_BASE_URL = "https://teachnook.com/techsnap";
+const API_CHAT_ENDPOINT = "/chat/"; // With trailing slash - confirmed working
+const API_FALLBACK_ENDPOINT = "/chat"; // Without trailing slash as fallback
 const GROQ_MODEL = "llama3-8b-8192";
+
+// API Connection monitoring
+const connectionMonitor = {
+  isOnline: true,
+  lastCheck: 0,
+  checkInterval: 30000, // Check every 30 seconds
+  statusElement: null,
+  statusDot: null,
+  statusText: null,
+  workingEndpoint: API_CHAT_ENDPOINT, // Track which endpoint works
+
+  // Initialize the connection monitor
+  init() {
+    this.statusElement = document.getElementById("connectionStatus");
+    if (this.statusElement) {
+      this.statusDot = this.statusElement.querySelector(".status-dot");
+      this.statusText = this.statusElement.querySelector(".status-text");
+    }
+  },
+
+  // Update UI based on connection status
+  updateUI() {
+    if (!this.statusDot || !this.statusText) return;
+
+    if (this.isOnline) {
+      this.statusDot.classList.remove("offline");
+      this.statusText.textContent = "Connected to API";
+    } else {
+      this.statusDot.classList.add("offline");
+      this.statusText.textContent = "API Disconnected";
+    }
+  },
+
+  // Try a single endpoint with POST method
+  async tryEndpoint(endpoint) {
+    try {
+      // Skip OPTIONS request and use POST directly as confirmed working
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        method: "POST",
+        credentials: "omit", // Don't send cookies
+        cache: "no-store",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messages: [{ role: "user", content: "test" }],
+        }),
+      });
+
+      console.log(`Endpoint ${endpoint} status: ${response.status}`);
+      return response.ok;
+    } catch (error) {
+      console.warn(`API connectivity check failed for ${endpoint}:`, error);
+      return false;
+    }
+  },
+
+  // Check if API is reachable (try both endpoints)
+  async checkConnection() {
+    // Don't check too frequently
+    const now = Date.now();
+    if (now - this.lastCheck < this.checkInterval) return this.isOnline;
+
+    this.lastCheck = now;
+
+    // Try primary endpoint first (with trailing slash)
+    let primaryWorks = await this.tryEndpoint(API_CHAT_ENDPOINT);
+
+    if (primaryWorks) {
+      this.isOnline = true;
+      this.workingEndpoint = API_CHAT_ENDPOINT;
+      console.log(`Primary endpoint ${API_CHAT_ENDPOINT} is working`);
+      this.updateUI();
+      return true;
+    }
+
+    // If primary fails, try fallback (without trailing slash)
+    let fallbackWorks = await this.tryEndpoint(API_FALLBACK_ENDPOINT);
+
+    if (fallbackWorks) {
+      this.isOnline = true;
+      this.workingEndpoint = API_FALLBACK_ENDPOINT;
+      console.log(`Fallback endpoint ${API_FALLBACK_ENDPOINT} is working`);
+      this.updateUI();
+      return true;
+    }
+
+    // If both fail, we're offline
+    this.isOnline = false;
+    this.updateUI();
+    return false;
+  },
+
+  // Get the currently working endpoint
+  getWorkingEndpoint() {
+    return this.workingEndpoint;
+  },
+
+  // Start monitoring
+  startMonitoring() {
+    this.init();
+    this.checkConnection();
+    setInterval(() => this.checkConnection(), this.checkInterval);
+  },
+};
 
 // Initialize mode toggle buttons
 function initModeToggle() {
@@ -330,21 +437,23 @@ async function processGroqQuery(query) {
   aiThinking.style.display = "flex";
 
   try {
-    console.log("Sending request to backend server");
-    // Create backend server request
-    const response = await fetch(`${API_BASE_URL}/api/chat`, {
+    // Use the trailing slash endpoint which we know works
+    console.log("Sending request to endpoint: /chat/");
+    const response = await fetch(`${API_BASE_URL}/chat/`, {
       method: "POST",
+      credentials: "omit", // Don't send cookies
+      cache: "no-store", // Don't cache responses
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        query: query,
+        messages: [{ role: "user", content: query }],
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Backend server error:", response.status, errorText);
+      console.error(`Backend server error: ${response.status} - ${errorText}`);
       throw new Error(`API error: ${response.status} ${response.statusText}`);
     }
 
@@ -364,6 +473,11 @@ async function processGroqQuery(query) {
   } catch (error) {
     console.error("Error calling backend server:", error);
     errorMessage.innerHTML = `<i class="fas fa-exclamation-triangle"></i> AI Error: ${error.message}`;
+    errorMessage.style.display = "block";
+
+    setTimeout(() => {
+      errorMessage.style.display = "none";
+    }, 5000);
 
     // Fallback to simpler responses for common queries
     console.log("Attempting fallback response");
@@ -1084,6 +1198,10 @@ window.onload = function () {
   console.log("Page loaded, initializing app...");
   listeningStatus.style.opacity = 0;
   processingStatus.style.opacity = 0;
+
+  // Start connection monitoring
+  connectionMonitor.startMonitoring();
+  console.log("API connection monitoring started");
 
   // Show fallback animations instead of missing GIFs
   document.getElementById("listeningGif").onerror = function () {

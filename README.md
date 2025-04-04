@@ -5,10 +5,9 @@ VoiceScribe is a high-performance web application for real-time voice transcript
 ## Key Features
 
 - Real-time voice transcription using WebKit Speech Recognition API
-- AI assistant powered by Groq API (llama3-8b-8192 model)
+- AI assistant powered by Qwen-2.5-32b model via TeachNook API
 - Push-to-talk and continuous recording modes
 - Connection status monitoring and offline support
-- Redis caching for improved performance
 - Automatic retry logic and fallback options
 - Optimized for 100+ concurrent users
 
@@ -52,72 +51,36 @@ TechSnap/
    pip install werkzeug==2.2.3 flask==2.2.3 requests==2.28.2 flask-cors==3.0.10
    ```
 
-2. Set up your Groq API key:
-
-   - Either set the environment variable: `$env:GROQ_API_KEY = "your_api_key"`
-   - Or edit the `my-app/config.txt` file with your API key
-
-3. Start the Flask server:
-
-   ```
-   python server.py
-   ```
-
-4. In a separate terminal, start the HTTP server:
+2. Start the HTTP server:
 
    ```
    cd my-app
    python -m http.server 8000
    ```
 
-5. Access the application at http://localhost:8000
+3. Access the application at http://localhost:8000
 
-### Scalable Setup (FastAPI + Redis)
+### API Configuration
 
-1. Install the required dependencies:
+The application is now configured to connect to the TeachNook API service at:
 
-   ```
-   cd server
-   pip install -r requirements.txt
-   ```
+```
+https://teachnook.com/techsnap/chat/
+```
 
-2. Set your Groq API key:
-
-   ```
-   $env:GROQ_API_KEY = "your_api_key"
-   ```
-
-3. Start the FastAPI server:
-
-   ```
-   python main.py
-   ```
-
-4. In a separate terminal, start the HTTP server:
-
-   ```
-   python -m http.server 8000
-   ```
-
-5. Access the application at http://localhost:8000
+The API uses Qwen-2.5-32b model for generating responses and follows standard chat completion format.
 
 ## Docker Deployment (Recommended for Production)
 
 For the easiest deployment that can handle 100+ concurrent users:
 
-1. Set your Groq API key in an environment variable:
-
-   ```
-   export GROQ_API_KEY=your_groq_api_key
-   ```
-
-2. Start the application stack with Docker Compose:
+1. Start the application stack with Docker Compose:
 
    ```
    docker-compose up -d
    ```
 
-3. Access the application at `http://localhost`
+2. Access the application at `http://localhost`
 
 ## Scaling for 100+ Users
 
@@ -152,6 +115,14 @@ cd kubernetes
 
 See the `kubernetes/README.md` file for detailed instructions.
 
+## Production Deployment
+
+The production version of this application is currently deployed at:
+
+```
+https://teachnook.com/techsnap/
+```
+
 ## Environment Variables
 
 | Variable       | Description               | Default    |
@@ -173,28 +144,20 @@ On Windows systems:
 
 ### Common Issues
 
-1. **API Key Not Set**
+1. **Connection to API Failed**
 
-   - Ensure your Groq API key is set correctly in config.txt or as an environment variable
+   - Check if the API endpoint is accessible from your browser
+   - Verify network connectivity
 
-2. **Connection to Backend Failed**
+2. **Module Not Found Errors**
 
-   - Check if the backend server is running on port 5000
-   - Verify network connectivity between frontend and backend
-
-3. **Redis Connection Failed**
-
-   - For the scalable setup, make sure Redis is installed and running
-   - On Windows, you can use Redis for Windows or WSL2
-
-4. **Module Not Found Errors**
    - Make sure all dependencies are installed with the correct versions
 
 ### Performance Tuning
 
 For better performance with more concurrent users:
 
-- Increase the number of workers (WORKERS environment variable)
+- Increase the number of workers
 - Adjust Redis connection pool size in main.py
 - Configure proper rate limits based on your server capacity
 
