@@ -1,0 +1,155 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: voicescribe-api
+  labels:
+    app: voicescribe
+    tier: backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: voicescribe
+      tier: backend
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: voicescribe
+        tier: backend
+    spec:
+      containers:
+        - name: api
+          image: voicescribe-api:latest
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          ports:
+            - containerPort: 5000
+          env:
+            - name: GROQ_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: voicescribe-secrets
+                  key: groq-api-key
+            - name: REDIS_HOST
+              value: "voicescribe-redis"
+            - name: REDIS_PORT
+              value: "6379"
+            - name: WORKERS
+              value: "2"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: voicescribe-web
+  labels:
+    app: voicescribe
+    tier: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: voicescribe
+      tier: frontend
+  template:
+    metadata:
+      labels:
+        app: voicescribe
+        tier: frontend
+    spec:
+      containers:
+        - name: nginx
+          image: voicescribe-web:latest
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "100m"
+          ports:
+            - containerPort: 80
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: voicescribe-redis
+  labels:
+    app: voicescribe
+    tier: cache
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: voicescribe
+      tier: cache
+  template:
+    metadata:
+      labels:
+        app: voicescribe
+        tier: cache
+    spec:
+      containers:
+        - name: redis
+          image: redis:6.2-alpine
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+          ports:
+            - containerPort: 6379
+          args: ["--appendonly", "yes"]
+          livenessProbe:
+            tcpSocket:
+              port: 6379
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 6379
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
+      volumes:
+        - name: redis-data
+          emptyDir: {}

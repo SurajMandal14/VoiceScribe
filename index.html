@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VoiceScribe - Real-time Transcription & AI Assistant</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="app-container">
+      <header>
+        <h1>VoiceScribe</h1>
+        <div class="connection-status">
+          <span id="status-indicator"></span>
+          <span id="status-text">Connected</span>
+        </div>
+      </header>
+
+      <main>
+        <div class="transcription-container">
+          <div id="transcription-box"></div>
+        </div>
+
+        <div class="response-container">
+          <div id="response-box"></div>
+        </div>
+
+        <div class="controls">
+          <button id="push-to-talk" class="primary-button">
+            <span class="icon">🎤</span>
+            <span class="text">Push to Talk</span>
+          </button>
+
+          <div class="secondary-controls">
+            <button id="clear-button" class="secondary-button">
+              <span class="icon">🗑️</span>
+              <span class="text">Clear</span>
+            </button>
+            <button id="toggle-mode" class="secondary-button">
+              <span class="icon">🔁</span>
+              <span class="text">Toggle Mode</span>
+            </button>
+          </div>
+        </div>
+      </main>
+
+      <footer>
+        <div class="info-text">
+          <p>Press and hold the Push to Talk button to record your voice.</p>
+          <p>
+            Currently in <span id="mode-indicator">push-to-talk</span> mode.
+          </p>
+        </div>
+      </footer>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
