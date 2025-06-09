@@ -1,170 +1,151 @@
-# VoiceScribe - Real-time Transcription & AI Assistant
+# VoiceScribe: AI-Powered Voice Transcription
 
-VoiceScribe is a high-performance web application for real-time voice transcription with AI assistant capabilities. The application is designed to handle 100+ concurrent users through optimized backend architecture, connection management, and offline capabilities.
+VoiceScribe is a real-time voice transcription application that uses AI to convert spoken words into text with high accuracy. It features a modern user interface, efficient backend processing, and is designed to handle 100+ concurrent users.
 
-## Key Features
+## Features
 
-- Real-time voice transcription using WebKit Speech Recognition API
-- AI assistant powered by Qwen-2.5-32b model via TeachNook API
-- Push-to-talk and continuous recording modes
-- Connection status monitoring and offline support
-- Automatic retry logic and fallback options
-- Optimized for 100+ concurrent users
+- Real-time voice recording and transcription
+- Multi-provider AI routing for reliable service
+- Support for multiple languages
+- Text export capabilities
+- Responsive design for all devices
+- Scalable architecture with FastAPI, Redis, Docker, and Kubernetes
 
-## Project Structure
+## Architecture
 
-The project has been organized into a scalable architecture:
+The application is built using a modern stack:
 
-```
-TechSnap/
-├── my-app/                   # Original application (Flask-based)
-│   ├── index.html            # Frontend interface
-│   ├── style.css             # Styling
-│   ├── script.js             # Frontend JavaScript
-│   ├── server.py             # Simple Flask server
-│   └── config.txt            # API key configuration
-│
-├── server/                   # Scalable FastAPI backend
-│   ├── main.py               # FastAPI application with Redis caching
-│   ├── requirements.txt      # Backend dependencies
-│   └── Dockerfile            # Docker configuration for backend
-│
-├── kubernetes/               # Kubernetes deployment configurations
-│   ├── deployment.yaml       # Pod deployments for API, web, and Redis
-│   ├── service.yaml          # Services and secrets configuration
-│   ├── hpa.yaml              # Horizontal Pod Autoscaler
-│   └── deploy.sh             # Deployment helper script
-│
-├── docker-compose.yml        # Docker Compose configuration
-├── nginx.conf                # Nginx configuration for web service
-└── README.md                 # This documentation
-```
+- **Frontend**: HTML, CSS, JavaScript
+- **Backend**: FastAPI (Python)
+- **Caching**: Redis
+- **Containerization**: Docker
+- **Orchestration**: Kubernetes
+- **Reverse Proxy**: Nginx
 
-## Quick Start (Local Development)
+## Multi-Provider AI Router
 
-### Simple Setup (Flask + HTTP Server)
+VoiceScribe includes a robust multi-provider AI routing system that intelligently routes requests across different AI providers with built-in fallback chains:
 
-1. Install the required dependencies:
+### AI Router Features
+
+- **Provider Abstraction**: Unified API for multiple AI providers
+- **Smart Routing**: Automatically selects the best available provider
+- **Fallback Chains**: If one provider fails, automatically try others
+- **Quota Tracking**: Monitors usage to stay within free tier limits
+- **Secure Key Management**: API keys are stored securely with rotation capabilities
+- **Monitoring**: Track usage, success rates, and errors for each provider
+
+### Supported Providers
+
+The system currently supports the following AI providers:
+
+1. **Groq**: Primary provider, uses `llama3-8b-8192` model
+2. **Google**: Secondary provider, uses `gemini-1.5-pro` model
+3. **OpenAI**: Tertiary (paid) provider, uses `gpt-3.5-turbo` model
+
+## Quick Start
+
+### Prerequisites
+
+- Docker and Docker Compose
+- Kubernetes cluster (for production deployment)
+- API keys for at least one of the supported providers (Groq, Google, OpenAI)
+
+### Local Development
+
+1. Clone the repository:
+
+   ```
+   git clone https://github.com/yourusername/voicescribe.git
+   cd voicescribe
+   ```
+
+2. Set up environment variables:
+
+   ```
+   # Create a .env file
+   cp .env.example .env
+
+   # Add your API keys
+   echo "GROQ_API_KEY=your_groq_api_key" >> .env
+   echo "GOOGLE_API_KEY=your_google_api_key" >> .env
+   echo "OPENAI_API_KEY=your_openai_api_key" >> .env
+   ```
+
+3. Start the application:
+
+   **To run the backend:**
+
+   ```
+   cd server
+   python -m uvicorn main:app --host 0.0.0.0 --port 5000
+   ```
+
+   **To run the frontend:**
 
    ```
    cd my-app
-   pip install werkzeug==2.2.3 flask==2.2.3 requests==2.28.2 flask-cors==3.0.10
+   python -m http.server 8080
    ```
 
-2. Start the HTTP server:
+4. Access the application at `http://localhost:8080`
+
+   **API Debug Endpoints:**
+
+   - To see all models: `http://localhost:5000/api/debug/models`
+   - To see which model was used last: `http://localhost:5000/api/debug/last_model`
+
+### Kubernetes Deployment
+
+For production deployment with Kubernetes:
+
+1. Apply the Kubernetes configurations:
 
    ```
-   cd my-app
-   python -m http.server 8000
+   kubectl apply -f kubernetes/
    ```
 
-3. Access the application at http://localhost:8000
-
-### API Configuration
-
-The application is now configured to connect to the TeachNook API service at:
-
-```
-https://teachnook.com/techsnap/chat/
-```
-
-The API uses Qwen-2.5-32b model for generating responses and follows standard chat completion format.
-
-## Docker Deployment (Recommended for Production)
-
-For the easiest deployment that can handle 100+ concurrent users:
-
-1. Start the application stack with Docker Compose:
+2. Set up secrets for API keys:
 
    ```
-   docker-compose up -d
+   kubectl create secret generic ai-api-keys \
+     --from-literal=GROQ_API_KEY=your_groq_api_key \
+     --from-literal=GOOGLE_API_KEY=your_google_api_key
    ```
 
-2. Access the application at `http://localhost`
+3. Access the service using the LoadBalancer IP or Ingress hostname
 
-## Scaling for 100+ Users
+## AI Router Dashboard
 
-The application is designed to handle 100+ concurrent users with the following optimizations:
-
-### Backend Optimizations
-
-- **Async Processing**: FastAPI with async handlers for non-blocking operations
-- **Connection Pooling**: Redis connection pool for efficient resource use
-- **Worker Scaling**: Multiple Uvicorn workers (default: 4)
-- **Rate Limiting**: Both server-side and Nginx rate limiting to prevent abuse
-- **Caching**: Redis caching for AI responses with 1-hour TTL
-- **Retry Logic**: Exponential backoff for API calls
-- **Fallback Options**: Multiple fallback mechanisms when primary API is unavailable
-
-### Frontend Optimizations
-
-- **Offline Support**: Client-side caching of responses
-- **Connection Monitoring**: Real-time connection status detection
-- **Error Recovery**: Automatic retry with exponential backoff
-- **Resource Management**: Efficient cleanup of media resources
-- **Local Fallbacks**: Client-side fallback responses when server is unavailable
-
-## Kubernetes Deployment
-
-For large-scale deployments (500+ users), we've included Kubernetes configurations:
+The application includes a monitoring dashboard for the AI Router:
 
 ```
-cd kubernetes
-./deploy.sh
+http://localhost:8080/api/ai/dashboard
 ```
 
-See the `kubernetes/README.md` file for detailed instructions.
+The dashboard allows you to:
 
-## Production Deployment
+- View the status of all providers
+- Monitor usage statistics
+- Reset usage counters
+- Add or rotate API keys
 
-The production version of this application is currently deployed at:
+## API Documentation
+
+API documentation is available at:
 
 ```
-https://teachnook.com/techsnap/
+http://localhost:8080/docs
 ```
 
-## Environment Variables
+Key endpoints:
 
-| Variable       | Description               | Default    |
-| -------------- | ------------------------- | ---------- |
-| `GROQ_API_KEY` | Your Groq API key         | (Required) |
-| `REDIS_HOST`   | Redis server hostname     | localhost  |
-| `REDIS_PORT`   | Redis server port         | 6379       |
-| `PORT`         | Backend API port          | 5000       |
-| `WORKERS`      | Number of Uvicorn workers | 4          |
-
-## Windows Compatibility Notes
-
-On Windows systems:
-
-- uvloop is not supported, so the application automatically uses the standard asyncio event loop
-- For Windows development, worker count is limited to 1 by default
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Connection to API Failed**
-
-   - Check if the API endpoint is accessible from your browser
-   - Verify network connectivity
-
-2. **Module Not Found Errors**
-
-   - Make sure all dependencies are installed with the correct versions
-
-### Performance Tuning
-
-For better performance with more concurrent users:
-
-- Increase the number of workers
-- Adjust Redis connection pool size in main.py
-- Configure proper rate limits based on your server capacity
+- `/api/chat`: Main chat API that uses the AI router
+- `/api/ai/generate`: Direct access to the AI router
+- `/api/ai/status`: Get provider status
+- `/api/ai/stats`: Get usage statistics
+- `/api/ai/keys`: Manage API keys
 
 ## License
 
-MIT
-
-## Support
-
-For questions or assistance, please create an issue in the GitHub repository.
+This project is licensed under the MIT License - see the LICENSE file for details.
